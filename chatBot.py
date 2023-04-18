@@ -3,6 +3,7 @@ import telebot
 bot = telebot.TeleBot("5991666433:AAGmLCE4pJ9jZbG8x6FfDTi8ss9ZM2Uo8bw")
 total_cost = 0
 cartStock = {}
+stock = {}
 rphoto = {
     'Store': "images/gStore.jpeg",
     '500ml Milk': "images/halfLitre.jpeg",
@@ -33,7 +34,7 @@ cost = {
     'Curd':10,
     'Battery':10,
 }
-stock = {
+gstock = {
     '500ml Milk':10,
     '250ml Milk':10,
     'Gold Flake':20,
@@ -47,6 +48,7 @@ stock = {
     'Pens':20,
     'Battery':12,
 }
+
 backList = {
     '500ml Milk':'HalfLitreback',
     '250ml Milk':'NormalPackback',
@@ -69,14 +71,15 @@ cleaning_items = ['Santoor']
 smoking_items = ['Gold Flake']
 electronic_items=['Battery']
 
-commands= ['/start','/help','/myCart','/placeOrder','/work']
+commands= ['/start','/help','/myCart','/placeOrder','/work','/more','/feedback']
 #buttons
 remove_button = telebot.types.KeyboardButton('\U0001F6D1 Remove item')
 order_button = telebot.types.KeyboardButton('\U0001F6D2 Order item')
 back_button = telebot.types.KeyboardButton('\U0001F519 Back')
-cart_button = telebot.types.KeyboardButton('\U0001F6D2My Cart')
+cart_button = telebot.types.KeyboardButton('\U0001F6D2 My Cart')
 placeOrder_button = telebot.types.KeyboardButton("Place Order")
-@bot.message_handler(func=lambda message:message=='/myCart')
+
+@bot.message_handler(commands=['myCart'])
 def printcart_handler(message):
     printCart(message)
 def printCart(message):
@@ -89,7 +92,7 @@ def printCart(message):
         # data = [[k,v] for k,v in cartStock.items()]
         # df = pd.DataFrame(data,columns=["Items","      Quantity"])
         # bot.send_message(message.chat.id,f'Your cart\n{df.to_string(index=False)}\nTotal cost : {total_cost}')
-        msg="Your Cart\n\n{:<23} {:<10} {:<10}\n".format('Item', 'Quantity','Cost')
+        msg="Your Cart\n\n{:<25} {:<15} {:<15}\n".format('Item', 'Quantity','Cost')
         for i in cartStock.keys():
             # j=i
             # if i == '500ml Milk':
@@ -98,7 +101,7 @@ def printCart(message):
             #     j = 'Normal Milk'
             # elif i=='Battery':
             #     j = 'Panasonic'
-            msg = msg+"{:<23} {:<10} {:<10}".format(i,cartStock[i], cartStock[i]*cost[i])+'\n'
+            msg = msg+"{:<25} {:<15} {:<10}".format(i,cartStock[i], cartStock[i]*cost[i])+'\n'
         msg = msg+f"\nTotal Cost {total_cost}"
         bot.send_message(message.chat.id,msg)
 @bot.message_handler(func=lambda message:message.text=='/help')
@@ -108,9 +111,12 @@ def help(message):
     msg = "/start : to start the bot\n" \
           "/help : to know details and commands about bot\n" \
           "/myCart : to view your cart\n" \
-          "/placeOrder : to place an order for your cart items" \
-          "/work : to apply for delivery work" \
-          "You can also directly enter the category name"
+          "/placeOrder : to place an order for your cart items\n" \
+          "/work : to apply for delivery work\n" \
+          "/feedback: to give us feedback\n" \
+          "/more : to order more\n" \
+          "You can also directly enter the category name\n" \
+          "Note: Once you type click or type /start command, all your cart items gets empty"
     bot.send_message(message.chat.id,msg)
 @bot.message_handler(func= lambda message: 'Place Order' in message.text or message.text=='/placeOrder')
 def placeOrder(message):
@@ -129,7 +135,8 @@ def orderHelper(message):
 def finalorder(message):
     if message.text == 'Confirm Order':
         with open('gif/delivery.gif','rb') as gif:
-            bot.send_document(chat_id=message.chat.id,document=gif,caption="Your order has been confirmed\nGet your items withing hours")
+            bot.send_document(chat_id=message.chat.id,document=gif,caption="Your order has been confirmed\nGet your items within hours")
+            bot.send_message(message.chat.id, 'Pay after your delivery')
     elif message.text == 'Cancel Order':
         start(message)
     elif 'Back' in message.text:
@@ -138,8 +145,15 @@ def finalorder(message):
         bot.send_message(message.chat.id, 'Invalid input')
         bot.send_message(message.chat.id, 'Choose once again')
         bot.register_next_step_handler(message,lambda msg:finalorder(msg))
+@bot.message_handler(commands=['more'])
+def more_handler(message):
+    start(message)
 @bot.message_handler(commands=['start'])
 def start_message(message):
+    global stock,cartStock
+    stock = gstock.copy()
+    cartStock={}
+    print(gstock)
     print(cartStock)
     with open(rphoto["Store"], 'rb') as photo:
         bot.send_photo(chat_id=message.chat.id,photo= photo,caption=f'Hello {message.from_user.first_name}! Welcome to Renuka Store \U0001F6D2 \nWhat would you like to buy?')
@@ -188,8 +202,12 @@ def remove_helper(message,item):
     if message.text in commands:
         handle_commands(message)
     if message.text.isdigit() and int(message.text)<=cartStock[item] and int(message.text)>=1:
-        global total_cost
+        global total_cost,stock
         cartStock[item] = cartStock[item]-int(message.text)
+        if(item not in stock.keys()):
+            stock[item] = int(message.text)
+        else:
+            stock[item] = stock[item]+int(message.text)
         total_cost = total_cost - (cost[item]*int(message.text))
         if int(message.text)==1:
             bot.send_message(message.chat.id,f'{message.text} item of {item} is removed')
@@ -197,6 +215,10 @@ def remove_helper(message,item):
             bot.send_message(message.chat.id,f'{message.text} items of {item} are removed')
         if cartStock[item]==0:
             cartStock.pop(item)
+        print('remove')
+        print(f"cartStock {cartStock}")
+        print(f'gstock {gstock}')
+        print(f"stock {stock}")
         printCart(message)
         help(message)
 def handle(message,back):
@@ -208,6 +230,9 @@ def handle(message,back):
         # bot.register_next_step_handler(message,lambda msg:handle(msg,back))
     elif message.text in commands:
         handle_commands(message)
+    elif message.text not in stock.keys():
+        bot.send_message(message.chat.id,"Item is not available for now")
+        handle_back(message,backList[message.text])
     else:
         print(f"handled {message.text}")
         cls = message.text
@@ -246,7 +271,7 @@ def order(message,item,keyboard):
     bot.register_next_step_handler(message, lambda msg: handle_items(msg, item,keyboard))
 def handle_items(message,item,keyboard):
     print(f"handle_items() {item} {message.text}")
-    global total_cost
+    global total_cost,stock
     if message.text.isdigit() and int(message.text) <= stock[item] and int(message.text)>=1:
         print(message.text)
         price = cost[item]
@@ -256,16 +281,23 @@ def handle_items(message,item,keyboard):
         if item not in cartStock.keys():
             cst = int(message.text)*price
             cartStock[item] = int(message.text)
+            stock[item] = stock[item] - int(message.text)
             print(f'if cost {cst}')
         else:
             cst = int(message.text)*price*cartStock[item]
             cartStock[item] = cartStock[item] + int(message.text)
+            stock[item] = stock[item]-int(message.text)
+        if stock[item]==0:
+            stock.pop(item)
             print(f'else cost {cst}')
-        # cartStock[item] = cartStock[item] + int(message.text) if cartStock.get(item) is not None else int(message.text)
-        bot.send_message(message.chat.id,'Order confirmed')
+        print('order')
+        print(f"cartStock {cartStock}")
+        print(f'gstock {gstock}')
+        print(f"stock {stock}")
+        bot.send_message(message.chat.id,'Order confirmed✅')
         bot.send_message(message.chat.id, f"Total {item}  cost: {cst}")
         printCart(message)
-        bot.send_message(message.chat.id,'Use /start command or Back button from keyboard to order more',reply_markup=keyboard)
+        bot.send_message(message.chat.id,'Use /more command or Back button from keyboard to order more',reply_markup=keyboard)
         handle_back(message,backList[item])
     elif message.text.isdigit() and int(message.text)<=0:
         bot.send_message(message.chat.id, "Quantity is not accpetable")
@@ -307,24 +339,25 @@ def handle_back(message,cls):
 
 @bot.message_handler(func=lambda message: 'Upload Photo' in message.text)
 def photo_handler(message):
-    bot.send_message(message.chat.id, 'Upload photo of your list of items')
+    bot.send_message(message.chat.id, 'Upload photo of your list of items📷')
     bot.register_next_step_handler(message,photo)
 def photo(message):
     if message.photo:
         # with open('gif/buy.gif','rb') as gif:
         #     bot.send_document(chat_id=message.chat.id, document=gif, caption="What would you like to buy?")
-        msg = "If your uploaded photo is valid, then your items will get ready within minutes, and we'll contact you soon.\nYou can pay after delivery"
+        msg = "If your uploaded photo is valid✅, then your items will get ready within minutes⌛, and we'll contact you soon.\nYou can pay after delivery"
         with open('gif/verification.gif','rb') as gif:
             bot.send_document(chat_id=message.chat.id,document=gif,caption=msg)
         thank(message)
     elif message.text in commands:
-        handle_commands(message.text)
+        handle_commands(message)
     else:
         msg = "Not a valid photo. Please make sure upload photo only\nWe are waiting for your photo.Try Again"
         with open('gif/thinking.gif','rb') as gif:
             bot.send_document(message.chat.id,document=gif,caption=msg)
         start(message)
 def handle_commands(message):
+    print(message)
     if(message.text=='/start'):
         start(message)
     elif message.text=='/myCart':
@@ -333,18 +366,27 @@ def handle_commands(message):
         placeOrder(message)
     elif message.text=='/help':
         help(message)
-    elif message.text=='work':
+    elif message.text=='/work':
         work(message)
+    elif message.text=='/more':
+        start(message)
+    elif message.text=='/feedback':
+        feedback(message)
+@bot.message_handler(func=lambda message: 'work' in message.text)
+def work_handler(message):
+    work(message)
 def work(message):
-    bot.send_message("Enter your mobile number (Only Hyd people are acceptable)\n")
-    bot.register_next_step_handler(message,lambda msg:handle_work(msg))
+    bot.send_message(message.chat.id,"Enter your mobile number (Only HYD people are acceptable)\n")
+    bot.register_next_step_handler(message, lambda msg: handle_work(msg))
 def handle_work(message):
+    if(message.text in commands):
+        handle_commands(message)
     if message.text.isdigit() and len(message.text)==10:
-        bot.send_message("We'll contact you soon. Stay tuned")
+        bot.send_message(message.chat.id,"We'll contact you soon. Stay Tuned")
+        help(message)
     else:
         bot.send_message(message.chat.id,'Enter valid mobile number')
-        bot.register_next_step_handler(message,work)
-
+        work(message)
 # define handler functions for each category
 @bot.message_handler(func=lambda message: ('Dairy' in message.text))
 def dairy_message(message):
@@ -427,7 +469,14 @@ def electronic_message(message):
     bot.send_message(message.chat.id, 'Click on Battery', reply_markup=keyboard)
     bot.register_next_step_handler(message, lambda msg: handle(msg,'Electronics'))
 def thank(message):
-    bot.send_message(message.chat.id,'Thank you')
+    bot.send_message(message.chat.id,'See you again, thank you!😊')
+    help(message)
+@bot.message_handler(func=lambda message: '/feedback' in message.text)
+def feedback_handler(message):
+    feedback(message)
+def feedback(message):
+    bot.send_message(message.chat.id,'Give your feedback')
+    bot.register_next_step_handler(message,lambda msg:thank(msg))
 @bot.message_handler(func=lambda message: 'My Cart' in message.text or '\myCart' == message.text)
 def cart_handler(message):
     printCart(message)

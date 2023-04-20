@@ -1,4 +1,5 @@
-Before developing this bot I conducted Market research to know the customer and owner requirements
+Before developing this bot I conducted market research to understand the customer and owner requirements.
+
 Features I added were:
 1)	Direct upload list of an item's photos: Some customers said instead of explicitly ordering the items from the Telegram e-commerce bot by choosing each and every item, can’t we just send the photo to the owner? So, I coded up the bot by including this feature.
 2)	Category-wise selection: Instead of searching each and every item from the main menu, it’s helpful to customers if they get one category's worth of items together. So, while ordering, customers don’t forget any item.
